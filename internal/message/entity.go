@@ -23,6 +23,11 @@ func (m *MessageReply) WithCode(code int) *MessageReply {
 	return m
 }
 
+func (m *MessageReply) WithMessage(message ...string) *MessageReply {
+	m.message = message
+	return m
+}
+
 func (m *MessageReply) StatusCode() int {
 	return m.code
 }

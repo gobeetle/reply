@@ -24,6 +24,11 @@ func (d *DataReply) WithCode(code int) *DataReply {
 	return d
 }
 
+func (d *DataReply) WithData(data any) *DataReply {
+	d.data = data
+	return d
+}
+
 func (d *DataReply) WithMessage(message ...string) *DataReply {
 	d.message = message
 	return d
