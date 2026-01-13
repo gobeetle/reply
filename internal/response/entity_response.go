@@ -30,18 +30,18 @@ func (r *Response) StatusCode() int {
 }
 
 func (r *Response) MarshalJSON() ([]byte, error) {
-	msg := ""
-	if len(r.Msg) > 0 {
-		msg = strings.Join(r.Msg, ", ")
-	}
-	return json.Marshal(CommonResponse{
+	result := CommonResponse{
 		MIMEType: r.MIMEType,
 		Code:     r.Code,
 		Status:   r.Status,
 		Errors:   utils.ErrorsToStrings(r.Errors),
-		Msg:      &msg,
+		Msg:      nil,
 		Data:     r.Data,
-	})
+	}
+	if len(r.Msg) > 0 {
+		result.Msg = utils.PtrTo(strings.Join(r.Msg, ", "))
+	}
+	return json.Marshal(result)
 }
 
 // var _ iface.ErrorCoder = (*DefaultResponse)(nil)
