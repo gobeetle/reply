@@ -13,10 +13,31 @@ import (
 	errpkg "github.com/gobeetle/reply/internal/err"
 )
 
-type DefaultDecoder struct{}
+// DefaultUnknownErrorStatus is used when an error has no StatusCode.
+const DefaultUnknownErrorStatus = http.StatusInternalServerError
+
+type DefaultDecoder struct {
+	// unknownErrorStatus is used when StatusCode is 0 and the payload is an error.
+	// Zero means DefaultUnknownErrorStatus (500).
+	unknownErrorStatus int
+}
 
 func NewDefaultDecoder() *DefaultDecoder {
 	return &DefaultDecoder{}
+}
+
+// WithUnknownErrorStatus sets the HTTP status for errors without an explicit code.
+// Pass 0 to restore the package default (500).
+func (r *DefaultDecoder) WithUnknownErrorStatus(code int) *DefaultDecoder {
+	r.unknownErrorStatus = code
+	return r
+}
+
+func (r *DefaultDecoder) resolveUnknownErrorStatus() int {
+	if r.unknownErrorStatus != 0 {
+		return r.unknownErrorStatus
+	}
+	return DefaultUnknownErrorStatus
 }
 
 func (r *DefaultDecoder) Empty() (resppkg.Response, error) {
@@ -72,7 +93,7 @@ func (r *DefaultDecoder) decode(coder iface.StatusCoder) (resppkg.Response, erro
 	if base.Code == 0 {
 		switch {
 		case len(base.Errors) > 0:
-			base.Code = http.StatusBadRequest
+			base.Code = r.resolveUnknownErrorStatus()
 		case base.Data == nil && base.Msg == nil:
 			base.Code = http.StatusNoContent
 		default:

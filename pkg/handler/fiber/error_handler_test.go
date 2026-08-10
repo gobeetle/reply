@@ -18,6 +18,74 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+func TestErrorHandlerPlainErrorDefaults500AndStrips(t *testing.T) {
+	var hooked string
+	app := fiber.New(fiber.Config{
+		ErrorHandler: ErrorHandler(ErrorHandlerConfig{
+			Hook: func(c *fiber.Ctx, err error) {
+				hooked = err.Error()
+			},
+		}),
+	})
+	app.Get("/", func(c *fiber.Ctx) error {
+		return errors.New("pq: secret db detail")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+	if hooked != "pq: secret db detail" {
+		t.Fatalf("hook: want full detail, got %q", hooked)
+	}
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Fatalf("status: want %d, got %d", http.StatusInternalServerError, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	if strings.Contains(string(body), "pq:") {
+		t.Fatalf("client body leaked detail: %s", body)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("json: %v body=%s", err, body)
+	}
+	if _, ok := payload["error"]; ok {
+		t.Fatalf("expected errors stripped, body=%s", body)
+	}
+}
+
+func TestErrorHandlerUnknownErrorStatus400(t *testing.T) {
+	app := fiber.New(fiber.Config{
+		ErrorHandler: ErrorHandler(ErrorHandlerConfig{
+			UnknownErrorStatus: http.StatusBadRequest,
+		}),
+	})
+	app.Get("/", func(c *fiber.Ctx) error {
+		return errors.New("pq: secret db detail")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status: want %d, got %d", http.StatusBadRequest, resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("json: %v body=%s", err, body)
+	}
+	errs, ok := payload["error"].([]any)
+	if !ok || len(errs) == 0 || errs[0] != "pq: secret db detail" {
+		t.Fatalf("expected 400 to keep detail, body=%s", body)
+	}
+}
+
 func TestErrorHandlerDefaultStrips5xx(t *testing.T) {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: ErrorHandler(ErrorHandlerConfig{}),

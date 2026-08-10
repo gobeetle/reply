@@ -37,8 +37,20 @@ func TestDecodeDirectErrorReply(t *testing.T) {
 	}
 }
 
-func TestDecodePlainErrorDefaultsBadRequest(t *testing.T) {
+func TestDecodePlainErrorDefaultsInternalServerError(t *testing.T) {
 	resp, err := NewDefaultDecoder().Decode(errors.New("boom"))
+	if err != nil {
+		t.Fatalf("Decode returned error: %v", err)
+	}
+	if resp.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, resp.Code)
+	}
+}
+
+func TestDecodePlainErrorUnknownStatusOverride(t *testing.T) {
+	resp, err := NewDefaultDecoder().
+		WithUnknownErrorStatus(http.StatusBadRequest).
+		Decode(errors.New("boom"))
 	if err != nil {
 		t.Fatalf("Decode returned error: %v", err)
 	}

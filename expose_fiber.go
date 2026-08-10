@@ -27,12 +27,13 @@ func NewFiber(c *fiber.Ctx) *FiberReplyHandler {
 }
 
 // FiberErrorHandler creates a Fiber error handler.
-// Default: hide internal details on 5xx responses.
+// Default: uncoded errors are 500 (stripped); typed 4xx keep client detail.
 //
 //	reply.FiberErrorHandler(reply.FiberErrorHandlerConfig{
 //	    Hook: func(c *fiber.Ctx, err error) {
 //	        logger.ErrorLog(c.Context(), err, nil)
 //	    },
+//	    // UnknownErrorStatus: 400, // optional: treat plain errors as bad request
 //	    Transform: reply.TransformConfig{
 //	        Transformer: func(source reply.DefaultResponse) (reply.ErrorCoder, error) {
 //	            return &source, nil
