@@ -17,8 +17,8 @@ type ErrorHandlerConfig struct {
 	// Hook runs first with the original error (before strip/transform/marshal).
 	Hook ErrorHook
 
-	// Transform runs after stripping, before the response is written.
-	Transform transform.ResponseTransformOpt
+	// Transform reshapes the outbound envelope after strip, before marshal.
+	Transform transform.Config
 
 	// Marshal replaces the default JSON marshaler when set.
 	Marshal marshal.ResponseMarshalOpt
@@ -30,6 +30,7 @@ type ErrorHandlerConfig struct {
 // ErrorHandler creates a Fiber error handler from cfg.
 func ErrorHandler(cfg ErrorHandlerConfig) fiber.ErrorHandler {
 	stripper := cfg.Strip.Resolve()
+	transformOpt := cfg.Transform.Resolve()
 	return func(c *fiber.Ctx, err error) error {
 		if err == nil {
 			return nil
@@ -38,7 +39,7 @@ func ErrorHandler(cfg ErrorHandlerConfig) fiber.ErrorHandler {
 			cfg.Hook(c, err)
 		}
 		h := NewFiberHandler(c).
-			WithResponseTransformOpt(cfg.Transform).
+			WithResponseTransformOpt(transformOpt).
 			WithResponseMarshalOpt(cfg.Marshal)
 		if stripper != nil {
 			h = h.WithErrorStripper(stripper)

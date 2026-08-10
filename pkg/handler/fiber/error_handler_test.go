@@ -11,7 +11,10 @@ import (
 	"testing"
 
 	errpkg "github.com/gobeetle/reply/internal/err"
+	"github.com/gobeetle/reply/internal/iface"
+	"github.com/gobeetle/reply/internal/response"
 	"github.com/gobeetle/reply/internal/strip"
+	"github.com/gobeetle/reply/internal/transform"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -95,6 +98,37 @@ func TestErrorHandlerCustomFallbackMessage(t *testing.T) {
 	}
 	if msg, _ := payload["message"].(string); msg != "something went wrong" {
 		t.Fatalf("expected custom fallback, body=%s", body)
+	}
+}
+
+func TestErrorHandlerTransformConfig(t *testing.T) {
+	app := fiber.New(fiber.Config{
+		ErrorHandler: ErrorHandler(ErrorHandlerConfig{
+			Transform: transform.Config{
+				Transformer: func(source response.Response) (iface.ErrorCoder, error) {
+					source.Msg = []string{"transformed"}
+					return &source, nil
+				},
+			},
+		}),
+	})
+	app.Get("/", func(c *fiber.Ctx) error {
+		return errpkg.ServiceFailed(errors.New("pq: secret db detail"))
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("json: %v body=%s", err, body)
+	}
+	if msg, _ := payload["message"].(string); msg != "transformed" {
+		t.Fatalf("expected transformed message, body=%s", body)
 	}
 }
 

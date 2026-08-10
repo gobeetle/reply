@@ -33,6 +33,11 @@ func NewFiber(c *fiber.Ctx) *FiberReplyHandler {
 //	    Hook: func(c *fiber.Ctx, err error) {
 //	        logger.ErrorLog(c.Context(), err, nil)
 //	    },
+//	    Transform: reply.TransformConfig{
+//	        Transformer: func(source reply.DefaultResponse) (reply.ErrorCoder, error) {
+//	            return &source, nil
+//	        },
+//	    },
 //	    Strip: reply.StripConfig{
 //	        FallbackMessage: "something went wrong",
 //	    },

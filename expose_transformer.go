@@ -7,6 +7,7 @@ import (
 type (
 	ResponseTransformer  = transform.ResponseTransformer
 	ResponseTransformOpt = transform.ResponseTransformOpt
+	TransformConfig      = transform.Config
 )
 
 // SetGlobalTransform sets a global transform
