@@ -5,6 +5,7 @@ import (
 	"github.com/gobeetle/reply/internal/iface"
 	"github.com/gobeetle/reply/internal/marshal"
 	resppkg "github.com/gobeetle/reply/internal/response"
+	"github.com/gobeetle/reply/internal/strip"
 	"github.com/gobeetle/reply/internal/transform"
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,8 +13,9 @@ import (
 type FiberReplyHandler struct {
 	transform.ResponseTransformOpt
 	marshal.ResponseMarshalOpt
-	decoder iface.ResponseDecoder
-	ctx     *fiber.Ctx
+	decoder  iface.ResponseDecoder
+	stripper strip.ErrorStripper
+	ctx      *fiber.Ctx
 }
 
 func NewFiberHandler(c *fiber.Ctx) *FiberReplyHandler {
@@ -47,6 +49,13 @@ func (r *FiberReplyHandler) WithResponseDecoder(
 	return r
 }
 
+func (r *FiberReplyHandler) WithErrorStripper(
+	stripper strip.ErrorStripper,
+) *FiberReplyHandler {
+	r.stripper = stripper
+	return r
+}
+
 // this function returns an empty response, with status code set to StatusNoContent
 func (r *FiberReplyHandler) Empty() error {
 	return r.JSON(nil)
@@ -64,6 +73,9 @@ func (r *FiberReplyHandler) JSON(obj any) error {
 }
 
 func (r *FiberReplyHandler) handle(base resppkg.Response) error {
+	if r.stripper != nil {
+		base = r.stripper(base)
+	}
 	// first transform the response
 	data, err := r.ResponseTransformOpt.Transform(base)
 	if err != nil {

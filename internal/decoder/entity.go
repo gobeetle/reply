@@ -1,6 +1,7 @@
 package decoder
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gobeetle/reply/internal/constant"
@@ -26,11 +27,18 @@ func (r *DefaultDecoder) Decode(obj any) (resppkg.Response, error) {
 	if obj == nil {
 		// empty response, StatusNoContent
 		return r.decode(nil)
-	} else if coder, ok := obj.(iface.StatusCoder); ok {
-		// if obj is StatusCoder, then decode it
+	}
+	if coder, ok := obj.(iface.StatusCoder); ok {
+		// direct StatusCoder (ErrorReply, DataReply, MessageReply, ...)
 		return r.decode(coder)
-	} else if err, ok := obj.(iface.ErrorProvider); ok {
-		// if it is just a generic error, then wrap it as ErrorCoder
+	}
+	if err, ok := obj.(error); ok {
+		// walk fmt.Errorf("%w") / Unwrap chains for a nested ErrorCoder
+		var ec iface.ErrorCoder
+		if errors.As(err, &ec) {
+			return r.decode(ec)
+		}
+		// plain error -> wrap as ErrorCoder
 		return r.decode(errpkg.New(err))
 	}
 	// for anything else, wrap it as DataCoder

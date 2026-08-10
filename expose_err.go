@@ -11,4 +11,13 @@ type (
 var (
 	NewError       = errpkg.New
 	NewErrorString = errpkg.NewString
+
+	InvalidRequest   = errpkg.InvalidRequest
+	ValidationFailed = errpkg.ValidationFailed
+	Unauthorized     = errpkg.Unauthorized
+	Forbidden        = errpkg.Forbidden
+	NotFound         = errpkg.NotFound
+	Conflict         = errpkg.Conflict
+	Internal         = errpkg.Internal
+	ServiceFailed    = errpkg.ServiceFailed
 )
